@@ -96,6 +96,26 @@ edge-impulse-blocks init
 edge-impulse-blocks push
 ```
 
+#### Recommended answers to `edge-impulse-blocks init` prompts
+
+The CLI will walk you through several questions. Use these answers for
+this block — they match the existing `parameters.json` and the assumptions
+in `build.py`:
+
+| Prompt | Answer | Why |
+|---|---|---|
+| **Block name** | `Unity Sentis (ONNX + C# DSP bundle)` | What appears in Studio's deploy picker. |
+| **Type / category** | `library` | This block produces a downloadable artifact, not firmware. |
+| **Integration URL** | `https://github.com/yennster/ei-unity-sentis-block` | Studio shows this link to users after a successful deploy ("what do I do with this zip?"). |
+| **CLI arguments** | *(empty)* | All build-time options are declared in `parameters.json`; no static args needed. |
+| **Mount learn-block output under `/data`?** | **N** | We only need the trained TFLite + impulse metadata, not raw training samples. |
+| **Support the EON Compiler?** | **N** | EON Compiler emits a custom binary that isn't standard TFLite — `tflite2onnx` can't parse it. Forcing standard TFLite keeps conversion reliable. |
+| **Show optimizations panel?** | **Y** (default) | Lets the user pick `int8` vs `float32` in Studio's UI; our build picks the matching variant from `metadata.tfliteModels[]`. |
+
+If you've already typed something different, no harm done — re-run
+`edge-impulse-blocks init` to overwrite, or edit `parameters.json` and
+`.ei-block-config` directly.
+
 After `push`, the block appears under your organization's
 **Custom blocks** and is selectable on the **Deployment** page of any
 project in the org as **"Unity Sentis (ONNX + C# DSP bundle)"**.
