@@ -48,15 +48,24 @@ self-contained zip you drop into Unity.
 
 ## Drop-in usage in any Unity Sentis project
 
-After downloading `deploy.zip`:
+After downloading the `deploy.zip` produced by this block (paths below are
+inside that zip — they don't exist in this repo):
 
 1. Add `com.unity.sentis` to `Packages/manifest.json` (Unity 6 LTS or later).
-2. Copy `unity/Scripts/*.cs` into your project's `Assets/Scripts/`.
+2. Extract `unity/Scripts/*.cs` from the zip into your project's
+   `Assets/Scripts/`.
 3. Drop `model.onnx` into `Assets/Resources/Models/` (or load via stream
    from disk if it's user-supplied).
 4. Read `metadata.json` at runtime to configure the DSP extractor's
    parameters (frame size, FFT length, num filters, etc.) so client-side
    preprocessing matches what the model was trained on.
+
+> **Where the C# scripts come from:** they're not checked in to this repo.
+> The Dockerfile pulls them from
+> [`yennster/ei-vr-explorer-unity`](https://github.com/yennster/ei-vr-explorer-unity/tree/main/Assets/Scripts)
+> at image build time, bakes them into the image, and `build.py` copies the
+> relevant subset (matching the impulse's DSP blocks) into each `deploy.zip`
+> at run time. Single source of truth, no copy-paste drift.
 
 ## Install (Enterprise)
 
