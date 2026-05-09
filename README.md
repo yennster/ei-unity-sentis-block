@@ -60,12 +60,12 @@ inside that zip — they don't exist in this repo):
    parameters (frame size, FFT length, num filters, etc.) so client-side
    preprocessing matches what the model was trained on.
 
-> **Where the C# scripts come from:** they're not checked in to this repo.
-> The Dockerfile pulls them from
-> [`yennster/ei-vr-explorer-unity`](https://github.com/yennster/ei-vr-explorer-unity/tree/main/Assets/Scripts)
-> at image build time, bakes them into the image, and `build.py` copies the
-> relevant subset (matching the impulse's DSP blocks) into each `deploy.zip`
-> at run time. Single source of truth, no copy-paste drift.
+> **Where the C# scripts come from:** they're checked in here under
+> [`unity-dsp/`](unity-dsp/). Canonical source still lives in
+> [`yennster/ei-vr-explorer-unity`](https://github.com/yennster/ei-vr-explorer-unity/tree/main/Assets/Scripts);
+> when those upstream files change, run `./tools/sync-from-unity.sh` and
+> commit the diff. The Dockerfile just `COPY`s the snapshot — deterministic
+> builds, no network needed at image build time.
 
 ## Install (Enterprise)
 
@@ -104,16 +104,20 @@ unzip -l test-output/deploy.zip
 | `quantization` | `float32` | Which TFLite variant to convert. `int8` works if the project has int8 quant available; Sentis loads both. |
 | `include-eon` | `no` | Bundle the EON-compiled `.h/.cpp` headers alongside the ONNX. Optional — useful for native plugin paths. |
 
-## Pinning the C# scripts
+## Updating the bundled C# scripts
 
-The Dockerfile bakes the C# DSP scripts in at image build time by fetching
-them from
-[`yennster/ei-vr-explorer-unity@main`](https://github.com/yennster/ei-vr-explorer-unity/tree/main/Assets/Scripts).
-To pin to a specific commit (recommended for reproducible deploys):
+The four `.cs` files in [`unity-dsp/`](unity-dsp/) are committed copies of
+the canonical source in `yennster/ei-vr-explorer-unity`. Refresh them when
+upstream changes:
 
 ```bash
-docker build --build-arg UNITY_REF=<commit-sha> -t ei-unity-sentis-block .
+./tools/sync-from-unity.sh             # default: main
+./tools/sync-from-unity.sh <commit>    # or pin to a specific commit/tag
+git diff unity-dsp/                    # review
+git commit unity-dsp/ -m "Sync unity-dsp from ei-vr-explorer-unity@<ref>"
 ```
+
+Each Docker build then ships exactly that snapshot — fully deterministic.
 
 ## Companion repos
 
