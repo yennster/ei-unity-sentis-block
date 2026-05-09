@@ -2,8 +2,8 @@
   "version": 1,
   "type": "deploy",
   "info": {
-    "name": "Quest VR Explorer (Sentis ONNX bundle)",
-    "description": "Builds a deploy.zip ready for the Edge Impulse VR Explorer Quest app. Converts the trained TFLite into ONNX (via tflite2onnx) and bundles it with a metadata.json describing the DSP block, classes, and sensor — so the headset can load the model with Unity Sentis and apply matching client-side DSP.",
+    "name": "Unity Sentis (ONNX + C# DSP bundle)",
+    "description": "Drop-in deployment for any Unity Sentis project (Quest 2/3, mobile XR, desktop). Converts the trained TFLite to ONNX, bundles the matching C# DSP extractors (Spectral Analysis, MFE, MFCC) selected automatically based on the impulse's DSP blocks, and ships a metadata.json describing classes, sensor, and DSP parameters so the client-side preprocessing matches what the model was trained on.",
     "category": "library"
   },
   "parameters": [

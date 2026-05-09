@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """
-Edge Impulse Custom Deployment Block — VR Explorer (Sentis ONNX bundle).
+Edge Impulse Custom Deployment Block — Unity Sentis Bundle.
 
 Reads the project's TFLite + impulse metadata, converts the model to ONNX
-via tflite2onnx, and writes deploy.zip with the bundle Unity Sentis expects:
+via tflite2onnx, and writes deploy.zip with everything a Unity Sentis
+project needs to run the model on a Quest 2 / Quest 3 / any Unity target:
 
     deploy.zip/
     ├── model.onnx              <-- main inference model
-    ├── metadata.json           <-- classes, DSP block config, sensor info
-    └── README.md               <-- short instructions
+    ├── metadata.json           <-- classes, DSP block params, sensor info
+    ├── README.md               <-- short usage instructions
+    ├── unity/Scripts/          <-- C# DSP extractors matching the impulse
+    │   ├── Fft.cs                  (always; shared utility)
+    │   ├── SpectralAnalysisExtractor.cs   (motion / IMU impulses)
+    │   ├── MFEExtractor.cs                (audio MFE impulses)
+    │   └── MFCCExtractor.cs               (audio MFCC impulses)
+    └── (optional) eon/         <-- EON-compiled .h/.cpp if --include-eon yes
 
-The Quest VR Explorer app downloads this zip, extracts the ONNX, and
-reads metadata.json to configure its client-side DSP and class names.
+Only the .cs files relevant to the impulse's DSP blocks are bundled, so
+audio-only projects don't ship the motion DSP code and vice-versa.
 
 Block contract (per https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks):
 
@@ -93,12 +100,22 @@ def main() -> int:
             copied = copy_eon_artifacts(input_dir, eon_dir)
             log(f"Bundled {copied} EON artifact files")
 
+        # Pick which Unity DSP scripts to include based on detected DSP blocks.
+        unity_scripts = pick_unity_scripts(metadata)
+        log(f"Bundling Unity DSP scripts: {sorted(unity_scripts) or '(none)'}")
+
         # Zip it.
         out_zip = output_dir / "deploy.zip"
         with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.write(onnx_path, arcname="model.onnx")
             zf.write(meta_path, arcname="metadata.json")
             zf.write(readme_path, arcname="README.md")
+            for script in sorted(unity_scripts):
+                src = UNITY_DSP_DIR / script
+                if src.exists():
+                    zf.write(src, arcname=str(Path("unity/Scripts") / script))
+                else:
+                    log(f"warning: expected Unity script {src} not found in image")
             if eon_dir and any(eon_dir.iterdir()):
                 for p in eon_dir.rglob("*"):
                     if p.is_file():
@@ -108,7 +125,47 @@ def main() -> int:
     return 0
 
 
+# ---------- constants -------------------------------------------------------
+
+# Directory where the Dockerfile drops the Unity DSP .cs files at image
+# build time. Override with EI_UNITY_DSP_DIR for local testing.
+UNITY_DSP_DIR = Path(os.environ.get("EI_UNITY_DSP_DIR", "/app/unity-dsp"))
+
+# Maps EI dsp block `type` (lowercased) to the Unity Scripts/*.cs file that
+# implements it client-side. Anything not in this map is skipped — image
+# DSP is built into Sentis via the ONNX itself, raw/flatten don't need
+# preprocessing, etc.
+DSP_TYPE_TO_SCRIPT: dict[str, str] = {
+    "spectral-analysis": "SpectralAnalysisExtractor.cs",
+    "spectral_analysis": "SpectralAnalysisExtractor.cs",
+    "audio-mfe": "MFEExtractor.cs",
+    "audio_mfe": "MFEExtractor.cs",
+    "mfe": "MFEExtractor.cs",
+    "audio-mfcc": "MFCCExtractor.cs",
+    "audio_mfcc": "MFCCExtractor.cs",
+    "mfcc": "MFCCExtractor.cs",
+}
+
+
 # ---------- helpers ---------------------------------------------------------
+
+
+def pick_unity_scripts(metadata: dict) -> set[str]:
+    """Return the set of .cs filenames to bundle, keyed off the impulse's
+    DSP block types. Always include Fft.cs since Spectral / MFE / MFCC all
+    depend on it; if no DSP scripts are needed (image projects, raw input)
+    we drop Fft.cs too so the bundle stays minimal."""
+    impulse = metadata.get("impulse") or {}
+    blocks = impulse.get("dspBlocks") or []
+    scripts: set[str] = set()
+    for b in blocks:
+        bt = (b.get("type") or "").lower()
+        script = DSP_TYPE_TO_SCRIPT.get(bt)
+        if script:
+            scripts.add(script)
+    if scripts:
+        scripts.add("Fft.cs")
+    return scripts
 
 
 def pick_tflite(metadata: dict, input_dir: Path, quantization: str) -> Path | None:
@@ -191,20 +248,31 @@ def die(msg: str) -> None:
     sys.exit(1)
 
 
-README_TEMPLATE = """# Quest VR Explorer deploy bundle
+README_TEMPLATE = """# Edge Impulse → Unity Sentis bundle
 
 Built for **{project_name}** (sensor: `{sensor}`).
 
-Contents:
+## Drop-in usage in any Unity Sentis project
+
+1. Add `com.unity.sentis` to `Packages/manifest.json` (Unity 6 LTS or later).
+2. Copy `unity/Scripts/*.cs` into your project's `Assets/Scripts/`.
+3. Copy `model.onnx` into `Assets/Resources/Models/` (or anywhere; load via
+   `ModelLoader.Load(stream)`).
+4. Read `metadata.json` at runtime to configure the DSP extractor's
+   parameters (frame size, FFT length, num filters, etc.) so the
+   client-side preprocessing matches what the model was trained on.
+
+## Contents
+
 - `model.onnx` — converted ONNX model (Unity Sentis-loadable).
-- `metadata.json` — classes, DSP block config, sensor / sample-rate info
-  the headset needs to apply matching client-side preprocessing.
-- (optional) `eon/` — EON-compiled `.h/.cpp` artifacts for native-plugin paths.
+- `metadata.json` — classes, sensor type, sample rate, and the impulse's
+  DSP block parameters.
+- `unity/Scripts/` — C# DSP implementations matching the impulse's blocks.
+  Bundled selectively: motion-only projects don't ship audio code and
+  vice-versa.
+- (optional) `eon/` — EON-compiled `.h/.cpp` for native-plugin paths.
 
 Classes (in model output order): {classes}
-
-Drop into the Edge Impulse VR Explorer Quest app — it auto-fetches this zip
-on retrain.
 """
 
 

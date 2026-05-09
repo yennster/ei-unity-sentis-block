@@ -1,8 +1,8 @@
-# Edge Impulse VR Explorer — Custom Deployment Block
+# Edge Impulse → Unity Sentis Custom Deployment Block
 
 A [custom deployment block](https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks)
-for Edge Impulse Enterprise organizations that builds a Unity Sentis-ready
-**`deploy.zip`** for the [Quest VR Explorer app](https://github.com/yennster/ei-vr-explorer-unity).
+for Edge Impulse Enterprise organizations that builds a **Unity Sentis-ready
+`deploy.zip`** for any Unity project — Quest 2 / Quest 3 / mobile XR / desktop.
 
 ## What it does
 
@@ -10,30 +10,53 @@ When triggered from any project in your organization:
 
 1. Reads the project's trained TFLite model + impulse metadata.
 2. Converts TFLite → ONNX with `tflite2onnx` (no TensorFlow dep).
-3. Bundles a `metadata.json` with class names, DSP block parameters,
-   sensor type, and frequency — everything the Quest app needs to apply
-   matching client-side DSP (Spectral Analysis / MFE / MFCC) before
-   inference.
-4. Writes the result as `deploy.zip` for download.
+3. Selects matching C# DSP extractors based on the impulse's DSP block types
+   (Spectral Analysis for motion, MFE / MFCC for audio).
+4. Bundles a `metadata.json` with class names, sensor type, sample rate, and
+   the DSP block parameters — so the client-side preprocessing matches
+   exactly what the model was trained on.
 
 ```
 deploy.zip
-├── model.onnx        ← Sentis loads this directly
-├── metadata.json     ← classes, DSP config, sensor info
+├── model.onnx              ← Unity Sentis loads this directly
+├── metadata.json           ← classes, DSP params, sensor info
 ├── README.md
-└── (optional) eon/   ← EON-compiled .h/.cpp if the build option is on
+├── unity/Scripts/          ← C# DSP scripts matching this impulse only
+│   ├── Fft.cs
+│   ├── SpectralAnalysisExtractor.cs   (motion impulses)
+│   ├── MFEExtractor.cs                (audio MFE impulses)
+│   └── MFCCExtractor.cs               (audio MFCC impulses)
+└── (optional) eon/         ← EON-compiled .h/.cpp if --include-eon yes
 ```
+
+The C# scripts are **selected per impulse** — an audio-only project doesn't
+ship the motion DSP code and vice-versa.
 
 ## Why this exists
 
-Without this block, the Quest VR Explorer app does a multi-hop dance: download
-the `arduino`/`android-cpp` deploy zip → extract the embedded TFLite from a C
-byte-array → call a Vercel Python function to run `tflite2onnx` → stream the
-ONNX bytes to the headset. With this block enabled on the org, the EI Studio
-runs the exact same conversion in its own infrastructure, and the companion
-just downloads the prebuilt `deploy.zip` — no extraction, no proxy.
+EI doesn't expose ONNX as a deploy block for most projects, and the TFLite
+it does expose is just the neural net (DSP block runs separately in EI's
+C++ code). Without this block, a Unity Sentis consumer has to:
 
-For non-Enterprise users the companion's fallback path still works.
+1. Pick a TFLite-bearing deploy (`arduino` / `android-cpp` / `wasm`).
+2. Extract the embedded TFLite from the C byte-array inside the zip.
+3. Run `tflite2onnx` somewhere (server-side function or a one-off CLI).
+4. Hand-write or copy in C# DSP code matching the impulse.
+
+This block does steps 1–4 inside EI's infrastructure and hands you a
+self-contained zip you drop into Unity.
+
+## Drop-in usage in any Unity Sentis project
+
+After downloading `deploy.zip`:
+
+1. Add `com.unity.sentis` to `Packages/manifest.json` (Unity 6 LTS or later).
+2. Copy `unity/Scripts/*.cs` into your project's `Assets/Scripts/`.
+3. Drop `model.onnx` into `Assets/Resources/Models/` (or load via stream
+   from disk if it's user-supplied).
+4. Read `metadata.json` at runtime to configure the DSP extractor's
+   parameters (frame size, FFT length, num filters, etc.) so client-side
+   preprocessing matches what the model was trained on.
 
 ## Install (Enterprise)
 
@@ -42,47 +65,53 @@ In the Edge Impulse organization that owns your project:
 1. **Organizations → Custom blocks → Add → Deployment block**.
 2. Either point it at this GitHub repo (Studio clones + builds the
    `Dockerfile`) or push a prebuilt image to a registry and reference that.
-3. Tick the projects (or the whole org) that should see it as a
-   deployment option.
+3. Tick the projects (or the whole org) that should see it.
 
 Once enabled, every project's **Deployment** page lists
-**"Quest VR Explorer (Sentis ONNX bundle)"**.
+**"Unity Sentis (ONNX + C# DSP bundle)"**.
 
 ## Local testing
 
-You can exercise the same Docker contract locally with a downloaded
-`deployment-metadata.json` from any project:
-
 ```bash
-docker build -t ei-vr-explorer-block .
+docker build -t ei-unity-sentis-block .
 
 # Replace these with paths from your local checkout
 docker run --rm \
   -v "$PWD/test-input:/data/input:ro" \
   -v "$PWD/test-output:/data/output:rw" \
-  ei-vr-explorer-block \
+  ei-unity-sentis-block \
   --metadata /data/input/deployment-metadata.json \
   --quantization float32 \
   --include-eon no
 
-ls test-output/   # → deploy.zip
+ls test-output/         # → deploy.zip
 unzip -l test-output/deploy.zip
 ```
-
-The `deployment-metadata.json` should have `folders.input` pointing at
-`/data/input` and `folders.output` at `/data/output`.
 
 ## Block parameters (parameters.json)
 
 | Parameter | Default | Meaning |
 |---|---|---|
 | `quantization` | `float32` | Which TFLite variant to convert. `int8` works if the project has int8 quant available; Sentis loads both. |
-| `include-eon` | `no` | Bundle the EON-compiled `.h/.cpp` headers alongside the ONNX. Optional — useful if you also build a native plugin path. |
+| `include-eon` | `no` | Bundle the EON-compiled `.h/.cpp` headers alongside the ONNX. Optional — useful for native plugin paths. |
 
-## Companion app & headset app
+## Pinning the C# scripts
 
-- Web companion: <https://github.com/yennster/ei-vr-explorer-web>
-- Unity app: <https://github.com/yennster/ei-vr-explorer-unity>
+The Dockerfile bakes the C# DSP scripts in at image build time by fetching
+them from
+[`yennster/ei-vr-explorer-unity@main`](https://github.com/yennster/ei-vr-explorer-unity/tree/main/Assets/Scripts).
+To pin to a specific commit (recommended for reproducible deploys):
+
+```bash
+docker build --build-arg UNITY_REF=<commit-sha> -t ei-unity-sentis-block .
+```
+
+## Companion repos
+
+- Unity reference app (Quest 2, includes scenes + collect/retrain UI):
+  <https://github.com/yennster/ei-vr-explorer-unity>
+- Web companion (pairing UI + fallback TFLite→ONNX path for non-Enterprise users):
+  <https://github.com/yennster/ei-vr-explorer-web>
 
 ## License
 
