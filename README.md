@@ -22,12 +22,11 @@ deploy.zip
 ├── model.onnx              ← Unity Sentis loads this directly
 ├── metadata.json           ← classes, DSP params, sensor info
 ├── README.md
-├── unity/Scripts/          ← only the extractor(s) this impulse uses
-│   ├── Fft.cs                                (always, dependency of the others)
-│   ├── SpectralAnalysisExtractor.cs          (impulses with Spectral Analysis)
-│   ├── MFEExtractor.cs                       (impulses with Audio MFE)
-│   └── MFCCExtractor.cs                      (impulses with Audio MFCC)
-└── (optional) eon/         ← EON-compiled .h/.cpp if --include-eon yes
+└── unity/Scripts/          ← only the extractor(s) this impulse uses
+    ├── Fft.cs                                (always, dependency of the others)
+    ├── SpectralAnalysisExtractor.cs          (impulses with Spectral Analysis)
+    ├── MFEExtractor.cs                       (impulses with Audio MFE)
+    └── MFCCExtractor.cs                      (impulses with Audio MFCC)
 ```
 
 Each `.cs` extractor handles **any impulse using that DSP block**, with all
@@ -175,8 +174,7 @@ docker run --rm \
   -v "$PWD/ei-block-data:/data" \
   ei-unity-sentis-block \
   --metadata /data/input/deployment-metadata.json \
-  --quantization float32 \
-  --include-eon no
+  --quantization float32
 
 ls ei-block-data/output/   # → deploy.zip
 unzip -l ei-block-data/output/deploy.zip
@@ -187,7 +185,6 @@ unzip -l ei-block-data/output/deploy.zip
 | Parameter | Default | Meaning |
 |---|---|---|
 | `quantization` | `float32` | Which TFLite variant to convert. `int8` works if the project has int8 quant available; Sentis loads both. |
-| `include-eon` | `no` | Bundle the EON-compiled `.h/.cpp` headers alongside the ONNX. Optional — useful for native plugin paths. |
 
 ## Updating the bundled C# scripts
 

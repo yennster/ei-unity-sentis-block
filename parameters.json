@@ -14,17 +14,6 @@
     },
     "parameters": [
         {
-            "name": "Include EON-compiled model",
-            "param": "include-eon",
-            "type": "select",
-            "value": "no",
-            "valid": [
-                "yes",
-                "no"
-            ],
-            "help": "Include the EON-compiled .h files alongside the ONNX. Optional; the Quest app uses the ONNX, but the EON output can be useful for native plugins."
-        },
-        {
             "name": "Quantization",
             "param": "quantization",
             "type": "select",
@@ -35,9 +24,5 @@
             ],
             "help": "Which TFLite variant to convert. float32 matches Sentis's default precision."
         }
-    ],
-    "supportsEonCompiler": true,
-    "showOptimizations": true,
-    "privileged": false,
-    "mountLearnBlock": false
+    ]
 }

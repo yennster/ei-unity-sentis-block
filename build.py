@@ -10,12 +10,11 @@ project needs to run the model on a Quest 2 / Quest 3 / any Unity target:
     ├── model.onnx              <-- main inference model
     ├── metadata.json           <-- classes, DSP block params, sensor info
     ├── README.md               <-- short usage instructions
-    ├── unity/Scripts/          <-- C# DSP extractors matching the impulse
-    │   ├── Fft.cs                  (always; shared FFT utility)
-    │   ├── SpectralAnalysisExtractor.cs   (impulses with Spectral Analysis)
-    │   ├── MFEExtractor.cs                (impulses with Audio MFE)
-    │   └── MFCCExtractor.cs               (impulses with Audio MFCC)
-    └── (optional) eon/         <-- EON-compiled .h/.cpp if --include-eon yes
+    └── unity/Scripts/          <-- C# DSP extractors matching the impulse
+        ├── Fft.cs                  (always; shared FFT utility)
+        ├── SpectralAnalysisExtractor.cs   (impulses with Spectral Analysis)
+        ├── MFEExtractor.cs                (impulses with Audio MFE)
+        └── MFCCExtractor.cs               (impulses with Audio MFCC)
 
 The extractors are general implementations of EI's DSP blocks — they handle
 any impulse using the block, with parameters read at runtime from
@@ -24,7 +23,7 @@ impulse actually needs.
 
 Block contract (per https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks):
 
-    python build.py --metadata <deployment-metadata.json> [--include-eon yes|no] [--quantization float32|int8]
+    python build.py --metadata <deployment-metadata.json> [--quantization float32|int8]
 
 The metadata file tells us:
     folders.input  — where the TFLite + impulse files live
@@ -51,7 +50,6 @@ from typing import Any
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--metadata", required=True)
-    parser.add_argument("--include-eon", default="no", choices=["yes", "no"])
     parser.add_argument("--quantization", default="float32", choices=["float32", "int8"])
     args = parser.parse_args()
 
@@ -94,14 +92,6 @@ def main() -> int:
             classes=", ".join(bundle_meta.get("classes", []) or []) or "(none)",
         ))
 
-        # Optionally include EON-compiled headers.
-        eon_dir = None
-        if args.include_eon == "yes":
-            eon_dir = td / "eon"
-            eon_dir.mkdir()
-            copied = copy_eon_artifacts(input_dir, eon_dir)
-            log(f"Bundled {copied} EON artifact files")
-
         # Pick which Unity DSP scripts to include based on detected DSP blocks.
         unity_scripts = pick_unity_scripts(metadata)
         log(f"Bundling Unity DSP scripts: {sorted(unity_scripts) or '(none)'}")
@@ -118,10 +108,6 @@ def main() -> int:
                     zf.write(src, arcname=str(Path("unity/Scripts") / script))
                 else:
                     log(f"warning: expected Unity script {src} not found in image")
-            if eon_dir and any(eon_dir.iterdir()):
-                for p in eon_dir.rglob("*"):
-                    if p.is_file():
-                        zf.write(p, arcname=str(Path("eon") / p.relative_to(eon_dir)))
         log(f"Wrote {out_zip} ({out_zip.stat().st_size} bytes)")
 
     return 0
@@ -231,16 +217,6 @@ def _compact_learn(b: dict) -> dict:
     return {k: b.get(k) for k in keep if k in b}
 
 
-def copy_eon_artifacts(input_dir: Path, dest: Path) -> int:
-    count = 0
-    for src in input_dir.rglob("*"):
-        if src.is_file() and ("trained" in src.name.lower() and src.suffix in {".h", ".cpp", ".c"}):
-            target = dest / src.name
-            shutil.copy2(src, target)
-            count += 1
-    return count
-
-
 def log(msg: str) -> None:
     print(f"[deploy-block] {msg}", flush=True)
 
@@ -272,7 +248,6 @@ Built for **{project_name}** (sensor: `{sensor}`).
 - `unity/Scripts/` — general C# implementations of the EI DSP blocks this
   impulse uses (parameters read from `metadata.json` at runtime). Only the
   extractors needed for this impulse's blocks are included.
-- (optional) `eon/` — EON-compiled `.h/.cpp` for native-plugin paths.
 
 Classes (in model output order): {classes}
 """
