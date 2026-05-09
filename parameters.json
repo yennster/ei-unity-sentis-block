@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "type": "deploy",
+  "info": {
+    "name": "Quest VR Explorer (Sentis ONNX bundle)",
+    "description": "Builds a deploy.zip ready for the Edge Impulse VR Explorer Quest app. Converts the trained TFLite into ONNX (via tflite2onnx) and bundles it with a metadata.json describing the DSP block, classes, and sensor — so the headset can load the model with Unity Sentis and apply matching client-side DSP.",
+    "category": "library"
+  },
+  "parameters": [
+    {
+      "name": "Include EON-compiled model",
+      "param": "include-eon",
+      "type": "select",
+      "value": "no",
+      "valid": ["yes", "no"],
+      "help": "Include the EON-compiled .h files alongside the ONNX. Optional; the Quest app uses the ONNX, but the EON output can be useful for native plugins."
+    },
+    {
+      "name": "Quantization",
+      "param": "quantization",
+      "type": "select",
+      "value": "float32",
+      "valid": ["float32", "int8"],
+      "help": "Which TFLite variant to convert. float32 matches Sentis's default precision."
+    }
+  ],
+  "supportsEonCompiler": true,
+  "showOptimizations": true,
+  "privileged": false,
+  "mountLearnBlock": false
+}

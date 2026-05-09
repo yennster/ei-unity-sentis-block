@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+test-input/
+test-output/
+*.zip
+.DS_Store
