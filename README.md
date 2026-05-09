@@ -1,7 +1,5 @@
 # Edge Impulse → Unity Sentis Custom Deployment Block
 
-<img src="images/icon.svg" align="right" width="120" alt="Block icon" />
-
 A [custom deployment block](https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks)
 for Edge Impulse Enterprise organizations that builds a **Unity Sentis-ready
 `deploy.zip`** for any Unity project — Quest 2 / Quest 3 / mobile XR / desktop.
@@ -142,31 +140,6 @@ next deploy — no re-init required, and consumers don't need to re-link.
 
 If you want to force a project to re-fetch the latest, just hit Build
 again on its Deployment page.
-
-### Block icon
-
-This repo ships an icon under [`images/`](images/) — Unity's master logo +
-"SENTIS" wordmark on the Edge Impulse brand purple (`#3b47c2`):
-
-- `images/icon.svg` — primary, scalable
-- `images/icon.png` — 256×256 raster (regenerate with
-  `qlmanage -t -s 256 -o images images/icon.svg && mv images/icon.svg.png images/icon.png`)
-
-The `edge-impulse-blocks` CLI doesn't currently push an icon as part of
-`push`, so upload it once via Studio UI:
-
-**Organizations → Custom blocks → \<your block\> → Edit → Logo → Upload**
-
-#### Trademark notice
-
-The Unity logo is a registered trademark of Unity Technologies, sourced
-from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unity_2021.svg).
-Using it on this third-party tool is fine for personal use,
-internal/portfolio demos, and "compatible with Unity Sentis" labelling,
-but it isn't an official endorsement by Unity. If you publish this block
-to a public marketplace or commercial distribution, swap to a custom
-mark or follow Unity's
-[brand guidelines](https://unity.com/branding-and-trademarks).
 
 ### Test locally before pushing
 
