@@ -73,32 +73,72 @@ inside that zip — they don't exist in this repo):
 
 ## Install (Enterprise)
 
-In the Edge Impulse organization that owns your project:
+Custom deployment blocks are an **Enterprise-only** Edge Impulse feature.
+The canonical way to publish one is the `edge-impulse-blocks` CLI.
 
-1. **Organizations → Custom blocks → Add → Deployment block**.
-2. Either point it at this GitHub repo (Studio clones + builds the
-   `Dockerfile`) or push a prebuilt image to a registry and reference that.
-3. Tick the projects (or the whole org) that should see it.
+### Push to your org with the EI CLI
 
-Once enabled, every project's **Deployment** page lists
-**"Unity Sentis (ONNX + C# DSP bundle)"**.
+```bash
+# One-time: install the CLI globally
+npm install -g edge-impulse-cli
+
+# Clone this repo (or your fork) and cd into it
+git clone https://github.com/yennster/ei-unity-sentis-block.git
+cd ei-unity-sentis-block
+
+# One-time: link the directory to a new org block.
+# Asks which organization, the block's display name, and category.
+# Generates .ei-block-config in the cwd.
+edge-impulse-blocks init
+
+# Upload the source, build the Docker image in EI's infrastructure,
+# and register the block in your org. Re-run after any local change.
+edge-impulse-blocks push
+```
+
+After `push`, the block appears under your organization's
+**Custom blocks** and is selectable on the **Deployment** page of any
+project in the org as **"Unity Sentis (ONNX + C# DSP bundle)"**.
+
+### Test locally before pushing
+
+The CLI ships a runner that downloads real project data and executes the
+block exactly as Studio would:
+
+```bash
+edge-impulse-blocks runner
+# Creates ./ei-block-data/{downloads,input,output} and runs the container.
+ls ei-block-data/output/   # → deploy.zip
+unzip -l ei-block-data/output/deploy.zip
+```
+
+### Alternative: build the Docker image yourself
+
+If you already have the image in your own registry (Docker Hub, GHCR, etc.),
+in Studio: **Organizations → Custom blocks → Add → Deployment block** and
+point it at the image instead of using the CLI.
 
 ## Local testing
+
+The fastest way is `edge-impulse-blocks runner` (above) — it pulls real
+project data and runs the container with the right metadata wired up.
+
+To exercise the raw Docker image directly:
 
 ```bash
 docker build -t ei-unity-sentis-block .
 
-# Replace these with paths from your local checkout
+# After running `edge-impulse-blocks runner --download-data input/` once,
+# you have a real deployment-metadata.json on disk:
 docker run --rm \
-  -v "$PWD/test-input:/data/input:ro" \
-  -v "$PWD/test-output:/data/output:rw" \
+  -v "$PWD/ei-block-data:/data" \
   ei-unity-sentis-block \
   --metadata /data/input/deployment-metadata.json \
   --quantization float32 \
   --include-eon no
 
-ls test-output/         # → deploy.zip
-unzip -l test-output/deploy.zip
+ls ei-block-data/output/   # → deploy.zip
+unzip -l ei-block-data/output/deploy.zip
 ```
 
 ## Block parameters (parameters.json)
