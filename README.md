@@ -145,8 +145,8 @@ again on its Deployment page.
 
 ### Block icon
 
-This repo ships an icon under [`images/`](images/) — a purple isometric
-cube on the EI brand color (`#3b47c2`):
+This repo ships an icon under [`images/`](images/) — Unity's master logo +
+"SENTIS" wordmark on the Edge Impulse brand purple (`#3b47c2`):
 
 - `images/icon.svg` — primary, scalable
 - `images/icon.png` — 256×256 raster (regenerate with
@@ -156,6 +156,17 @@ The `edge-impulse-blocks` CLI doesn't currently push an icon as part of
 `push`, so upload it once via Studio UI:
 
 **Organizations → Custom blocks → \<your block\> → Edit → Logo → Upload**
+
+#### Trademark notice
+
+The Unity logo is a registered trademark of Unity Technologies, sourced
+from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Unity_2021.svg).
+Using it on this third-party tool is fine for personal use,
+internal/portfolio demos, and "compatible with Unity Sentis" labelling,
+but it isn't an official endorsement by Unity. If you publish this block
+to a public marketplace or commercial distribution, swap to a custom
+mark or follow Unity's
+[brand guidelines](https://unity.com/branding-and-trademarks).
 
 ### Test locally before pushing
 
