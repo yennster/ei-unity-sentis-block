@@ -5,3 +5,7 @@ test-input/
 test-output/
 *.zip
 .DS_Store
+
+# edge-impulse-blocks CLI: contains your org/block IDs, per-clone config
+.ei-block-config
+ei-block-data/
