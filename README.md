@@ -10,8 +10,9 @@ When triggered from any project in your organization:
 
 1. Reads the project's trained TFLite model + impulse metadata.
 2. Converts TFLite → ONNX with `tflite2onnx` (no TensorFlow dep).
-3. Selects matching C# DSP extractors based on the impulse's DSP block types
-   (Spectral Analysis for motion, MFE / MFCC for audio).
+3. Picks the C# DSP extractors that match the impulse's DSP block types.
+   The extractors are **general implementations** — any impulse using that
+   block, regardless of sensor type, gets a working extractor.
 4. Bundles a `metadata.json` with class names, sensor type, sample rate, and
    the DSP block parameters — so the client-side preprocessing matches
    exactly what the model was trained on.
@@ -21,16 +22,19 @@ deploy.zip
 ├── model.onnx              ← Unity Sentis loads this directly
 ├── metadata.json           ← classes, DSP params, sensor info
 ├── README.md
-├── unity/Scripts/          ← C# DSP scripts matching this impulse only
-│   ├── Fft.cs
-│   ├── SpectralAnalysisExtractor.cs   (motion impulses)
-│   ├── MFEExtractor.cs                (audio MFE impulses)
-│   └── MFCCExtractor.cs               (audio MFCC impulses)
+├── unity/Scripts/          ← only the extractor(s) this impulse uses
+│   ├── Fft.cs                                (always, dependency of the others)
+│   ├── SpectralAnalysisExtractor.cs          (impulses with Spectral Analysis)
+│   ├── MFEExtractor.cs                       (impulses with Audio MFE)
+│   └── MFCCExtractor.cs                      (impulses with Audio MFCC)
 └── (optional) eon/         ← EON-compiled .h/.cpp if --include-eon yes
 ```
 
-The C# scripts are **selected per impulse** — an audio-only project doesn't
-ship the motion DSP code and vice-versa.
+Each `.cs` extractor handles **any impulse using that DSP block**, with all
+parameters (sample rate, frame size, filter count, FFT length, etc.) read
+at runtime from `metadata.json`. The selection is "include `MFEExtractor.cs`
+in the zip when the impulse has an Audio MFE block" — not "this build is
+audio-specific".
 
 ## Why this exists
 

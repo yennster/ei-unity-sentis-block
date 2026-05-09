@@ -11,14 +11,16 @@ project needs to run the model on a Quest 2 / Quest 3 / any Unity target:
     ├── metadata.json           <-- classes, DSP block params, sensor info
     ├── README.md               <-- short usage instructions
     ├── unity/Scripts/          <-- C# DSP extractors matching the impulse
-    │   ├── Fft.cs                  (always; shared utility)
-    │   ├── SpectralAnalysisExtractor.cs   (motion / IMU impulses)
-    │   ├── MFEExtractor.cs                (audio MFE impulses)
-    │   └── MFCCExtractor.cs               (audio MFCC impulses)
+    │   ├── Fft.cs                  (always; shared FFT utility)
+    │   ├── SpectralAnalysisExtractor.cs   (impulses with Spectral Analysis)
+    │   ├── MFEExtractor.cs                (impulses with Audio MFE)
+    │   └── MFCCExtractor.cs               (impulses with Audio MFCC)
     └── (optional) eon/         <-- EON-compiled .h/.cpp if --include-eon yes
 
-Only the .cs files relevant to the impulse's DSP blocks are bundled, so
-audio-only projects don't ship the motion DSP code and vice-versa.
+The extractors are general implementations of EI's DSP blocks — they handle
+any impulse using the block, with parameters read at runtime from
+metadata.json. The bundling step just trims the zip to the .cs files this
+impulse actually needs.
 
 Block contract (per https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks):
 
@@ -267,9 +269,9 @@ Built for **{project_name}** (sensor: `{sensor}`).
 - `model.onnx` — converted ONNX model (Unity Sentis-loadable).
 - `metadata.json` — classes, sensor type, sample rate, and the impulse's
   DSP block parameters.
-- `unity/Scripts/` — C# DSP implementations matching the impulse's blocks.
-  Bundled selectively: motion-only projects don't ship audio code and
-  vice-versa.
+- `unity/Scripts/` — general C# implementations of the EI DSP blocks this
+  impulse uses (parameters read from `metadata.json` at runtime). Only the
+  extractors needed for this impulse's blocks are included.
 - (optional) `eon/` — EON-compiled `.h/.cpp` for native-plugin paths.
 
 Classes (in model output order): {classes}
