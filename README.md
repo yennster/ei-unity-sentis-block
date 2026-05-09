@@ -1,5 +1,7 @@
 # Edge Impulse → Unity Sentis Custom Deployment Block
 
+<img src="images/icon.svg" align="right" width="120" alt="Block icon" />
+
 A [custom deployment block](https://docs.edgeimpulse.com/studio/organizations/custom-blocks/custom-deployment-blocks)
 for Edge Impulse Enterprise organizations that builds a **Unity Sentis-ready
 `deploy.zip`** for any Unity project — Quest 2 / Quest 3 / mobile XR / desktop.
@@ -119,6 +121,41 @@ If you've already typed something different, no harm done — re-run
 After `push`, the block appears under your organization's
 **Custom blocks** and is selectable on the **Deployment** page of any
 project in the org as **"Unity Sentis (ONNX + C# DSP bundle)"**.
+
+### Updating the block after a code change
+
+`edge-impulse-blocks push` is the workflow for any change — `build.py`,
+`Dockerfile`, `parameters.json`, the `unity-dsp/` snapshot, anything:
+
+```bash
+# Edit your files, commit if you want
+git add -A && git commit -m "..."
+
+# Re-upload + rebuild in EI's infrastructure
+edge-impulse-blocks push
+```
+
+`push` uploads the new source, rebuilds the Docker image server-side, and
+updates the block record in your org. Existing projects that have the
+block as a deploy target automatically pick up the new version on their
+next deploy — no re-init required, and consumers don't need to re-link.
+
+If you want to force a project to re-fetch the latest, just hit Build
+again on its Deployment page.
+
+### Block icon
+
+This repo ships an icon under [`images/`](images/) — a purple isometric
+cube on the EI brand color (`#3b47c2`):
+
+- `images/icon.svg` — primary, scalable
+- `images/icon.png` — 256×256 raster (regenerate with
+  `qlmanage -t -s 256 -o images images/icon.svg && mv images/icon.svg.png images/icon.png`)
+
+The `edge-impulse-blocks` CLI doesn't currently push an icon as part of
+`push`, so upload it once via Studio UI:
+
+**Organizations → Custom blocks → \<your block\> → Edit → Logo → Upload**
 
 ### Test locally before pushing
 

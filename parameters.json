@@ -1,31 +1,43 @@
 {
-  "version": 1,
-  "type": "deploy",
-  "info": {
-    "name": "Unity Sentis (ONNX + C# DSP bundle)",
-    "description": "Drop-in deployment for any Unity Sentis project (Quest 2/3, mobile XR, desktop). Converts the trained TFLite to ONNX, bundles the matching C# DSP extractors (Spectral Analysis, MFE, MFCC) selected automatically based on the impulse's DSP blocks, and ships a metadata.json describing classes, sensor, and DSP parameters so the client-side preprocessing matches what the model was trained on.",
-    "category": "library"
-  },
-  "parameters": [
-    {
-      "name": "Include EON-compiled model",
-      "param": "include-eon",
-      "type": "select",
-      "value": "no",
-      "valid": ["yes", "no"],
-      "help": "Include the EON-compiled .h files alongside the ONNX. Optional; the Quest app uses the ONNX, but the EON output can be useful for native plugins."
+    "version": 1,
+    "type": "deploy",
+    "info": {
+        "name": "Unity Sentis (ONNX + C# DSP bundle)",
+        "description": "Builds a Unity Sentis bundle: ONNX model plus matching C# DSP scripts (Spectral Analysis, MFE, MFCC). Drop into any Unity 6 project — Quest 2/3, mobile XR, desktop.",
+        "category": "library",
+        "integrateUrl": "https://github.com/yennster/ei-unity-sentis-block",
+        "mountLearnBlock": false,
+        "supportsEonCompiler": false,
+        "showOptimizations": true,
+        "cliArguments": "",
+        "privileged": false
     },
-    {
-      "name": "Quantization",
-      "param": "quantization",
-      "type": "select",
-      "value": "float32",
-      "valid": ["float32", "int8"],
-      "help": "Which TFLite variant to convert. float32 matches Sentis's default precision."
-    }
-  ],
-  "supportsEonCompiler": true,
-  "showOptimizations": true,
-  "privileged": false,
-  "mountLearnBlock": false
+    "parameters": [
+        {
+            "name": "Include EON-compiled model",
+            "param": "include-eon",
+            "type": "select",
+            "value": "no",
+            "valid": [
+                "yes",
+                "no"
+            ],
+            "help": "Include the EON-compiled .h files alongside the ONNX. Optional; the Quest app uses the ONNX, but the EON output can be useful for native plugins."
+        },
+        {
+            "name": "Quantization",
+            "param": "quantization",
+            "type": "select",
+            "value": "float32",
+            "valid": [
+                "float32",
+                "int8"
+            ],
+            "help": "Which TFLite variant to convert. float32 matches Sentis's default precision."
+        }
+    ],
+    "supportsEonCompiler": true,
+    "showOptimizations": true,
+    "privileged": false,
+    "mountLearnBlock": false
 }
